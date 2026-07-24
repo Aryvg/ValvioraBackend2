@@ -1,4 +1,4 @@
-const ThumbnailApi = require('../model/ThumbnailApi');
+const ThumbnailApi = require('../model/Thumbnailapi');
 const fs = require('fs');
 const crypto = require('crypto'); // for generating videoId
 const path = require('path');

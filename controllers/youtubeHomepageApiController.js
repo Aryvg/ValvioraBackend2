@@ -1,6 +1,6 @@
 const YoutubeHomepageApi = require('../model/YoutubeHomepageApi');
 const AggregatedVideoApi = require('../model/Aggregatedvideoapi');
-const ThumbnailApi = require('../model/ThumbnailApi');
+const ThumbnailApi = require('../model/Thumbnailapi');
 const VideoSummaryApi = require('../model/Videosummaryapi');
 const mongoose = require('mongoose');
 const VideoContentApi = mongoose.models.VideoContentApi || require('../model/Videocontentapi');

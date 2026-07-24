@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend documentation</title>
+    <link rel="stylesheet" href="../../css/style.css">
+</head>
+
+<body>
+    <p class="index">If you want to know how you can use this backend, read the documentation.</p>
+
+    <div>
+        <p>1) http://localhost:3500/employees/</p>
+        <p>By a post request, you can send</p>
+        <p>
+            {
+            "firstname": "Abenet",
+            "lastname": "Tilahun",
+            "job": "Chemical engineer",
+            "image": "images/1384060.png",
+            "video": "videos/video3.mp4",
+            "createdBy": "Abenet",
+            "comments": ["This is nice", "This is cool"],
+            "skills": {
+            "skill1": "This is what i am scared of",
+            "skill2": "not today",
+            "skill3": "Programming is dead"
+            },
+            "__v": 0
+            }
+
+        </p>
+    </div>
+    <div>
+        <p>2) http://localhost:3500/employees/</p>
+        <p>By a get request, you can get</p>
+        <p>
+            {
+            "_id": "69dabd7eb561317403303ec1",
+            "videoId": "633d03d2-8b54-4fbe-b5fe-213cb75b9eb0",
+            "firstname": "Abenet",
+            "lastname": "Tilahun",
+            "job": "Chemical engineer",
+            "image": "http://localhost:3500/images/1384060.png",
+            "video": "http://localhost:3500/media/file/video3.mp4",
+            "createdBy": "Abenets",
+            "comments": [
+            "This is nice",
+            "This is cool"
+            ],
+            "skills": {
+            "skill1": "This is what i am scared of",
+            "skill2": "not today",
+            "skill3": "Programming is dead"
+            },
+            "__v": 0
+            }
+
+        </p>
+        <p>If you want to get one item among all items, send http://localhost:3500/employees/videoId </p>
+    </div>
+    <div>
+        <p>3) http://localhost:3500/employees/</p>
+        <p>By a put request, you can send</p>
+        <p>
+            {"videoId":"videoId", "firstname":"he is evil", "comments": [
+            "This is the best choice"
+            ],
+            "skills": {
+            "skill4": "This is what i am scared of"
+            }
+            }
+
+        </p>
+
+        <p>then the backend returns </p>
+        <p>
+
+            {
+            "_id": "69dabd7eb561317403303ec1",
+            "videoId": "633d03d2-8b54-4fbe-b5fe-213cb75b9eb0",
+            "firstname": "he is evil",
+            "lastname": "Tilahun",
+            "job": "Chemical engineer",
+            "image": "images/1384060.png",
+            "video": "videos/video3.mp4",
+            "createdBy": "Abenets",
+            "comments": [
+            "This is the best choice"
+            ],
+            "skills": {
+            "skill1": "This is what i am scared of",
+            "skill2": "not today",
+            "skill3": "Programming is dead",
+            "skill4": "This is what i am scared of"
+            },
+            "__v": 1
+            }
+        </p>
+    </div>
+    <div>
+        <p>4) http://localhost:3500/employees/</p>
+        <p>By a delete request, you can send</p>
+        <p>{"videoId":"633d03d2-8b54-4fbe-b5fe-213cb75b9eb0"}</p>
+        <p>Then the data related to videoId will be deleted</p>
+    </div>
+    <!-- <img src="img/image1.png"> -->
+    <div>
+        When we send this by a post request
+        {
+        "name":"Abenet",
+        "email":"no",
+        "job":"good",
+        "userInfo":{
+        "channelName":"best in the wo",
+        "views":20,
+        "Creator":"Amazing"
+        }
+        }
+        It returns
+        {
+        "videoId": "e569c539-03de-4221-b5ab-559836ced8dd",
+        "name": "Abenet",
+        "email": "no",
+        "job": "good",
+        "createdBy": "Abenets",
+        "userInfo": {
+        "channelName": "best in the wo",
+        "views": 20,
+        "Creator": "Amazing"
+        },
+        "_id": "69db4c55aae236dc2de6c680",
+        "__v": 0
+        }
+
+        By a get request if we say http://localhost:3500/practiceOne/
+        Or if wea say http://localhost:3500/practiceOne/videoId
+        It retuns
+        {
+        "_id": "69db4c55aae236dc2de6c680",
+        "videoId": "e569c539-03de-4221-b5ab-559836ced8dd",
+        "name": "Abenet",
+        "email": "no",
+        "job": "good",
+        "createdBy": "Abenets",
+        "userInfo": {
+        "channelName": "best in the wo",
+        "views": 20,
+        "Creator": "Amazing"
+        },
+        "__v": 0
+        }
+
+        If we say by a put request http://3500/practiceOne and say
+        {"videoId":"e569c539-03de-4221-b5ab-559836ced8dd", "job":"this is a job", "channelName":"my channel",
+        "views":300, "Creator":"My damn channel"}
+        It returns
+        {
+        "_id": "69db4c55aae236dc2de6c680",
+        "videoId": "e569c539-03de-4221-b5ab-559836ced8dd",
+        "name": "Abenet",
+        "email": "no",
+        "job": "this is a job",
+        "createdBy": "Abenets",
+        "userInfo": {
+        "channelName": "my channel",
+        "views": 300,
+        "Creator": "My damn channel"
+        },
+        "__v": 0
+        }
+        If we say {"videoId":"aa13f7a4-3142-41ff-bd00-4c8ed1c2e9c0"} by a delet request
+
+
+    </div>
+</body>
+
+</html>

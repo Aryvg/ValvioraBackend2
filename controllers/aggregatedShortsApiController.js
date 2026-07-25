@@ -120,14 +120,14 @@ const createNewAggregatedShortsApi = async (req, res) => {
         const axiosConfig = { headers: { Authorization: forwardedAuth } };
 
         await Promise.all([
-            axios.post('http://localhost:3500/shortsSummaryApi', {
+            axios.post('https://valviorabackend2.onrender.com/shortsSummaryApi', {
                 shortId: result.shortId,
                 channelId: result.channelId,
                 thumbnail: result.thumbnail,
                 title: result.title,
                 views: result.views
             }, axiosConfig),
-            axios.post('http://localhost:3500/shortsContentApi', {
+            axios.post('https://valviorabackend2.onrender.com/shortsContentApi', {
                 shortId: result.shortId,
                 channelId: result.channelId,
                 videoUrl: result.videoUrl,
@@ -210,7 +210,7 @@ const updateAggregatedShortsApi = async (req, res) => {
         // Full mirror sync — always send ALL current values from the saved record
         // so ShortsSummaryApi and ShortsContentApi are always an exact copy
         await Promise.allSettled([
-            axios.put('http://localhost:3500/shortsSummaryApi', {
+            axios.put('https://valviorabackend2.onrender.com/shortsSummaryApi', {
                 shortId: result.shortId,
                 title: result.title,
                 views: result.views,
@@ -218,7 +218,7 @@ const updateAggregatedShortsApi = async (req, res) => {
                 isBanned: result.isBanned
             }, axiosConfig),
 
-            axios.put('http://localhost:3500/shortsContentApi', {
+            axios.put('https://valviorabackend2.onrender.com/shortsContentApi', {
                 shortId: result.shortId,
                 Likes: result.Likes,
                 Dislikes: result.Dislikes,
@@ -278,7 +278,7 @@ const updateShortReaction = async (req, res, reaction) => {
 
         try {
             const forwardedAuth = req.headers.authorization || req.headers.Authorization || '';
-            await axios.put('http://localhost:3500/shortsContentApi', {
+            await axios.put('https://valviorabackend2.onrender.com/shortsContentApi', {
                 shortId: updated.shortId,
                 Likes: updated.Likes,
                 Dislikes: updated.Dislikes
@@ -348,8 +348,8 @@ const deleteAggregatedShortsApi = async (req, res) => {
         };
 
         const fanOutResults = await Promise.allSettled([
-            axios.delete('http://localhost:3500/shortsSummaryApi', axiosConfig),
-            axios.delete('http://localhost:3500/shortsContentApi', axiosConfig)
+            axios.delete('https://valviorabackend2.onrender.com/shortsSummaryApi', axiosConfig),
+            axios.delete('https://valviorabackend2.onrender.com/shortsContentApi', axiosConfig)
         ]);
 
         fanOutResults.forEach((result, i) => {

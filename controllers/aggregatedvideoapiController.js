@@ -176,7 +176,7 @@ const createNewAggregatedVideoApi = async (req, res) => {
         await Promise.all([
 
             // Branch 1: Send title, Views, Time → videoSummaryApi
-            axios.post('http://localhost:3500/videoSummaryApi', {
+            axios.post('https://valviorabackend2.onrender.com/videoSummaryApi', {
                 videoId: result.videoId,
                 channelId: result.channelId,
                 title: result.title,
@@ -187,7 +187,7 @@ const createNewAggregatedVideoApi = async (req, res) => {
             }, axiosConfig),
 
             // Branch 2: Send video, descriptions → videoContentApi
-            axios.post('http://localhost:3500/videoContentApi', {
+            axios.post('https://valviorabackend2.onrender.com/videoContentApi', {
                 videoId: result.videoId,
                 channelId: result.channelId,
                 video: result.video,
@@ -197,7 +197,7 @@ const createNewAggregatedVideoApi = async (req, res) => {
             }, axiosConfig),
 
             // Branch 3: Send image → thumbnailApi
-            axios.post('http://localhost:3500/thumbnailApi', {
+            axios.post('https://valviorabackend2.onrender.com/thumbnailApi', {
                 videoId: result.videoId,
                 channelId: result.channelId,
                 image: result.image,
@@ -395,9 +395,9 @@ const deleteAggregatedVideoApi = async (req, res) => {
         };
 
         const fanOutResults = await Promise.allSettled([
-            axios.delete('http://localhost:3500/thumbnailApi', axiosConfig),
-            axios.delete('http://localhost:3500/videoContentApi', axiosConfig),
-            axios.delete('http://localhost:3500/videoSummaryApi', axiosConfig)
+            axios.delete('https://valviorabackend2.onrender.com/thumbnailApi', axiosConfig),
+            axios.delete('https://valviorabackend2.onrender.com/videoContentApi', axiosConfig),
+            axios.delete('https://valviorabackend2.onrender.com/videoSummaryApi', axiosConfig)
         ]);
 
         fanOutResults.forEach((result, i) => {

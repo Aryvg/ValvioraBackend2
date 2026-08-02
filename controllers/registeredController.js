@@ -74,14 +74,17 @@ const updateRegistered = async (req, res) => {
         delete update.roles; // role changes are DB-only — never through this endpoint
         delete update.isOnline; // presence is only ever set by the heartbeat/offline endpoints
         delete update.lastActiveAt; // presence is only ever set by the heartbeat/offline endpoints
-        // enforce server-side password max length for security
-        if (update.password && String(update.password).length > 12) {
-            return res.status(400).json({ message: 'Password must be 12 characters or less.' });
-        }
+
+        // SECURITY: this endpoint has no ownership/auth check on the target
+        // (anyone who knows a username/UserId can hit it), so it must never be
+        // allowed to set a password directly - that would let anyone take over
+        // any account with no verification at all. Password changes must go
+        // through the code-verified reset flow instead
+        // (requestPasswordReset -> verifyResetCode).
         if (update.password) {
-            if (!isStrongPassword(update.password)) return res.status(400).json({ message: 'Password is not strong enough.' });
-            update.password = await bcrypt.hash(update.password, 10);
+            return res.status(400).json({ message: 'Password changes must go through the password reset flow.' });
         }
+
         const resu = await Registered.findOneAndUpdate(filter, update, { new: true }).exec();
         if (!resu) return res.status(404).json({ message: 'Registered not found.' });
         res.json({ message: 'Updated', registered: resu });
@@ -148,7 +151,7 @@ const getRegistered = async (req, res) => {
     }
 };
 
-// ADDED - GET /registered/me: returns the LOGGED-IN user's own account data
+// GET /registered/me: returns the LOGGED-IN user's own account data
 // (used for the profile picture, display name, handle, age, and country in
 // the header/account dropdown). Scoped to req.user (from the verified JWT),
 // never to a client-supplied id. Sensitive fields are explicitly excluded -
@@ -169,7 +172,7 @@ const getMyRegistered = async (req, res) => {
     }
 };
 
-// ADDED - DELETE /registered/me: deletes the LOGGED-IN user's own account.
+// DELETE /registered/me: deletes the LOGGED-IN user's own account.
 // SECURITY: the account to delete is derived ONLY from req.user (the
 // authenticated username), never from anything in the request body. This is
 // deliberate - trusting a client-supplied UserId here would let any logged-in
@@ -246,6 +249,15 @@ const requestPasswordReset = async (req, res) => {
     }
 };
 
+// Two ways this is called from the frontend:
+//  1) { user, code }              -> just checks the code is valid (doesn't
+//                                     consume it), so the UI can move to the
+//                                     "choose a new password" screen.
+//  2) { user, code, newPassword } -> re-checks the code and, if still valid,
+//                                     actually sets the new password and
+//                                     consumes the code.
+// The code is only ever cleared once a password has actually been set, so
+// step 1 never burns the code step 2 needs.
 const verifyResetCode = async (req, res) => {
     const user = req.body.user || req.body.email;
     const { code, newPassword } = req.body;
@@ -256,27 +268,22 @@ const verifyResetCode = async (req, res) => {
         if (new Date() > new Date(reg.resetVerificationExpires)) return res.status(410).json({ message: 'Reset code expired.' });
         const ok = await bcrypt.compare(String(code), String(reg.resetVerificationCode));
         if (!ok) return res.status(401).json({ message: 'Invalid reset code.' });
-        try {
-            // Prepare targeted update: set password if provided, always clear reset fields
-            const updateOps = {};
-            const setOps = {};
-            const unsetOps = { resetVerificationCode: "", resetVerificationExpires: "" };
-            if (newPassword) {
-                if (String(newPassword).length > 12) {
-                    return res.status(400).json({ message: 'Password must be 12 characters or less.' });
-                }
-                if (!isStrongPassword(newPassword)) return res.status(400).json({ message: 'Password is not strong enough.' });
-                setOps.password = await bcrypt.hash(newPassword, 10);
-            }
-            if (Object.keys(setOps).length) updateOps.$set = setOps;
-            updateOps.$unset = unsetOps;
 
-            await Registered.updateOne({ _id: reg._id }, updateOps).exec();
-            res.json({ message: 'Reset verified. Password updated if provided.' });
-        } catch (e) {
-            console.error('Reset verify update failed', e);
-            return res.status(500).json({ message: 'Server error' });
+        if (!newPassword) {
+            return res.json({ message: 'Code verified.' });
         }
+
+        if (String(newPassword).length > 12) {
+            return res.status(400).json({ message: 'Password must be 12 characters or less.' });
+        }
+        if (!isStrongPassword(newPassword)) return res.status(400).json({ message: 'Password is not strong enough.' });
+
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await Registered.updateOne(
+            { _id: reg._id },
+            { $set: { password: hashed }, $unset: { resetVerificationCode: "", resetVerificationExpires: "" } }
+        ).exec();
+        res.json({ message: 'Password updated.' });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error' });

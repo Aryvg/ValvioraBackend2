@@ -7,7 +7,6 @@ const crypto = require('crypto');
 const handleNewUser = async (req, res) => {
     const { user, pwd, firstname, lastname, age, country, confirm } = req.body;
     const profilePicture = req.file ? req.file.path : null;
-    console.info('[register] handleNewUser:start', { username: user, hasProfilePicture: Boolean(profilePicture), firstname, lastname, age, country });
     if (!user || !pwd || !profilePicture || !firstname || !lastname || !age || !country || !confirm) {
         return res.status(400).json({ message: 'All fields are required.' });
     }
@@ -68,7 +67,6 @@ const handleNewUser = async (req, res) => {
 
     // check for existing pending registration (upsert case)
     const pending = await User.findOne({ username: user }).exec();
-    console.info('[register] pending lookup', { username: user, exists: Boolean(pending) });
 
     try {
         // encrypt the password and confirm
@@ -79,8 +77,6 @@ const handleNewUser = async (req, res) => {
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         const verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
         const hashedVerificationCode = await bcrypt.hash(verificationCode, 10);
-
-        console.info('[register] preparing verification payload', { username: user, verificationExpires: verificationExpires.toISOString() });
 
         // prepare mail options
         const mailOptions = {
@@ -112,12 +108,11 @@ const handleNewUser = async (req, res) => {
 
                 // attempt to send email; if it fails, try to revert pending to previous state
                 try {
-                    console.info('[register] sending verification email', { username: user, mode: 'update' });
                     await transporter.sendMail(mailOptions);
-                    console.info('[register] verification email sent', { username: user, mode: 'update' });
+                    console.log(`Sent verification code to ${user} (updated pending).`);
                     return res.status(200).json({ success: `Pending registration updated. Verification code sent to ${user}.` });
                 } catch (emailErr) {
-                    console.error('[register] email send failed', { username: user, stack: emailErr && emailErr.stack ? emailErr.stack : emailErr });
+                    console.error('Error sending verification email for update:', emailErr);
                     try {
                         await User.replaceOne({ _id: pending._id }, oldPending).exec();
                     } catch (revertErr) {
@@ -147,12 +142,11 @@ const handleNewUser = async (req, res) => {
                 });
 
                 try {
-                    console.info('[register] sending verification email', { username: user, mode: 'create' });
                     await transporter.sendMail(mailOptions);
-                    console.info('[register] verification email sent', { username: user, mode: 'create' });
+                    console.log(`Sent verification code to ${user}`);
                     return res.status(201).json({ success: `New user ${user} created! Verification code sent.` });
                 } catch (emailErr) {
-                    console.error('[register] email send failed', { username: user, stack: emailErr && emailErr.stack ? emailErr.stack : emailErr });
+                    console.error('Error sending verification email:', emailErr);
                     // Cleanup: remove the created user since email failed
                     try { await User.deleteOne({ _id: result._id }); } catch (cleanupErr) { console.error('Cleanup failed:', cleanupErr); }
                     return res.status(500).json({ message: 'Failed to send verification email.' });
@@ -163,7 +157,6 @@ const handleNewUser = async (req, res) => {
             }
         }
     } catch (err) {
-        console.error('[register] handleNewUser:error', { username: user, stack: err && err.stack ? err.stack : err });
         res.status(500).json({ 'message': err.message });
     }
 }
@@ -173,20 +166,16 @@ const jwt = require('jsonwebtoken');
 
 const verifyCode = async (req, res) => {
     const { user, code } = req.body;
-    console.info('[register] verifyCode:start', { username: user, codeLength: String(code || '').trim().length });
     if (!user || !code) return res.status(400).json({ message: 'user and code are required.' });
 
     try {
         const pending = await User.findOne({ username: user }).exec();
-        console.info('[register] verifyCode:pending lookup', { username: user, exists: Boolean(pending), isVerified: pending ? pending.isVerified : null });
         if (!pending) return res.status(404).json({ message: 'No pending registration found.' });
         if (pending.isVerified) return res.status(400).json({ message: 'Already verified.' });
 
         if (!pending.verificationCode || !pending.verificationExpires) {
             return res.status(400).json({ message: 'Verification not available.' });
         }
-
-        console.info('[register] verifyCode:attempt', { username: user, expiresAt: pending.verificationExpires ? new Date(pending.verificationExpires).toISOString() : null });
 
         if (new Date() > new Date(pending.verificationExpires)) {
             try { await User.deleteOne({ _id: pending._id }); } catch (e) { /* ignore */ }
@@ -212,11 +201,8 @@ const verifyCode = async (req, res) => {
         }
 
         if (!match) {
-            console.warn('[register] verifyCode:invalid', { username: user });
             return res.status(401).json({ message: 'Invalid verification code.' });
         }
-
-        console.info('[register] verifyCode:matched', { username: user });
 
         const newRegistered = await Registered.create({
             UserId: crypto.randomUUID(),
@@ -229,8 +215,7 @@ const verifyCode = async (req, res) => {
             profilePicture: pending.profilePicture
         });
 
-        console.info('[register] verifyCode:creating registered user', { username: user, registeredId: newRegistered.UserId });
-        try { await User.deleteOne({ _id: pending._id }); console.info('[register] verifyCode:pending removed', { username: user, pendingId: pending._id.toString() }); } catch (e) { console.error('[register] verifyCode:pending cleanup failed', { username: user, stack: e && e.stack ? e.stack : e }); }
+        try { await User.deleteOne({ _id: pending._id }); } catch (e) { console.error('Failed to remove pending user:', e); }
 
         // Create JWTs and set refresh cookie so the user is logged in immediately
         try {
@@ -249,18 +234,16 @@ const verifyCode = async (req, res) => {
 
             newRegistered.refreshToken = refreshToken;
             await newRegistered.save();
-            console.info('[register] verifyCode:tokens created', { username: user });
 
             res.cookie('jwt', refreshToken, { httpOnly: true, sameSite: 'None', secure: true, maxAge: 24 * 60 * 60 * 1000 });
-            console.info('[register] verifyCode:cookie set', { username: user });
 
             return res.status(200).json({ message: 'Verified and registered.', roles, accessToken, redirect: '/Velviora.html' });
         } catch (tokenErr) {
-            console.error('[register] verifyCode:token error', { username: user, stack: tokenErr && tokenErr.stack ? tokenErr.stack : tokenErr });
+            console.error('Error issuing tokens after verification:', tokenErr);
             return res.status(500).json({ message: 'Registered but failed to create session.' });
         }
     } catch (err) {
-        console.error('[register] verifyCode:error', { username: user, stack: err && err.stack ? err.stack : err });
+        console.error(err);
         return res.status(500).json({ message: 'Server error during verification.' });
     }
 };

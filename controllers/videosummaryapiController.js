@@ -21,12 +21,18 @@ const isViewIncrementRequest = (body) => {
     return keys.length === 2 && body.videoId && body.Views === 1 && body.title === undefined && body.Time === undefined && body.likes === undefined && body.Likes === undefined && body.dislikes === undefined && body.Dislikes === undefined && body.views === undefined && body.time === undefined;
 };
 
+const isReactionActionRequest = (body) => {
+    if (!body || typeof body !== 'object') return false;
+    const keys = Object.keys(body);
+    return keys.length === 2 && body.videoId && (body.action === 'like' || body.action === 'dislike');
+};
+
 const getAllvideosummaryapis = async (req, res) => {
     const videosummaryapis = await videosummaryapi.find().lean();//get all videosummaryapis from database
     if (!videosummaryapis || videosummaryapis.length === 0) return res.status(204).json({ 'message': 'No videosummaryapis found.' }); //if no videosummaryapis are found, return 204(empty).
 
     const mapped = videosummaryapis.map(e => {
-        const { viewedBy, ...rest } = e;
+        const { viewedBy, likedBy, dislikedBy, ...rest } = e;
         return {
             ...rest,
             Likes: formatCount(e.Likes),
@@ -113,6 +119,54 @@ const updatevideosummaryapi = async (req, res) => {
         return res.json(out);
     }
 
+    const reactionRequest = isReactionActionRequest(req.body);
+    if (reactionRequest) {
+        if (!req.user) return res.sendStatus(401);
+        const normalizedUser = String(req.user).trim();
+        if (!Array.isArray(Videosummaryapi.likedBy)) Videosummaryapi.likedBy = [];
+        if (!Array.isArray(Videosummaryapi.dislikedBy)) Videosummaryapi.dislikedBy = [];
+
+        const hasLiked = Videosummaryapi.likedBy.includes(normalizedUser);
+        const hasDisliked = Videosummaryapi.dislikedBy.includes(normalizedUser);
+
+        if (req.body.action === 'like') {
+            if (hasLiked) {
+                Videosummaryapi.likedBy = Videosummaryapi.likedBy.filter(u => u !== normalizedUser);
+                Videosummaryapi.Likes = Math.max(0, (Videosummaryapi.Likes || 0) - 1);
+            } else {
+                Videosummaryapi.likedBy.push(normalizedUser);
+                Videosummaryapi.Likes = (Videosummaryapi.Likes || 0) + 1;
+                if (hasDisliked) {
+                    Videosummaryapi.dislikedBy = Videosummaryapi.dislikedBy.filter(u => u !== normalizedUser);
+                    Videosummaryapi.Dislikes = Math.max(0, (Videosummaryapi.Dislikes || 0) - 1);
+                }
+            }
+        } else {
+            if (hasDisliked) {
+                Videosummaryapi.dislikedBy = Videosummaryapi.dislikedBy.filter(u => u !== normalizedUser);
+                Videosummaryapi.Dislikes = Math.max(0, (Videosummaryapi.Dislikes || 0) - 1);
+            } else {
+                Videosummaryapi.dislikedBy.push(normalizedUser);
+                Videosummaryapi.Dislikes = (Videosummaryapi.Dislikes || 0) + 1;
+                if (hasLiked) {
+                    Videosummaryapi.likedBy = Videosummaryapi.likedBy.filter(u => u !== normalizedUser);
+                    Videosummaryapi.Likes = Math.max(0, (Videosummaryapi.Likes || 0) - 1);
+                }
+            }
+        }
+
+        const result = await Videosummaryapi.save();
+        const out = result.toObject ? result.toObject() : { ...result };
+        delete out.viewedBy;
+        out.viewerHasLiked = out.likedBy?.includes(normalizedUser) || false;
+        out.viewerHasDisliked = out.dislikedBy?.includes(normalizedUser) || false;
+        delete out.likedBy;
+        delete out.dislikedBy;
+        out.Likes = formatCount(out.Likes);
+        out.Dislikes = formatCount(out.Dislikes);
+        return res.json(out);
+    }
+
     if (req.body?.title) {
         if (req.body.title.length > 100) {
             return res.status(400).json({ message: 'Title must not exceed 100 characters.' });
@@ -181,7 +235,7 @@ const getvideosummaryapi = async (req, res) => {
     if (!Videosummaryapi) {
         return res.status(204).json({ "message": `No videosummaryapi matches videoId ${videoId}.` });
     }
-    const { viewedBy, ...result } = Videosummaryapi;
+    const { viewedBy, likedBy, dislikedBy, ...result } = Videosummaryapi;
     result.Likes = formatCount(result.Likes);
     result.Dislikes = formatCount(result.Dislikes);
     res.json(result);

@@ -47,6 +47,14 @@ const videosummarySchema = new Schema({
     viewedBy: {
         type: [String],
         default: []
+    },
+    likedBy: {
+        type: [String],
+        default: []
+    },
+    dislikedBy: {
+        type: [String],
+        default: []
     }
     // subscribe removed — handled externally if needed
 });

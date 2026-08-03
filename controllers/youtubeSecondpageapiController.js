@@ -148,6 +148,10 @@ const getYoutubeSecondpageapi = async (req, res) => {
         // Fetch the channel that owns this video
         const channel = await ChannelData.findOne({ channelId: summary.channelId }).lean();
 
+        const normalizedUser = req.user ? String(req.user).trim() : '';
+        const viewerHasLiked = normalizedUser && Array.isArray(summary.likedBy) && summary.likedBy.includes(normalizedUser);
+        const viewerHasDisliked = normalizedUser && Array.isArray(summary.dislikedBy) && summary.dislikedBy.includes(normalizedUser);
+
         const merged = {
             videoId:             summary.videoId,
             channelId:           summary.channelId,
@@ -163,7 +167,9 @@ const getYoutubeSecondpageapi = async (req, res) => {
             },
             subscribe: channel?.subscribe ?? 0,
             Likes:    formatCount(summary.Likes ?? 0),
-            Dislikes: formatCount(summary.Dislikes ?? 0)
+            Dislikes: formatCount(summary.Dislikes ?? 0),
+            viewerHasLiked: !!viewerHasLiked,
+            viewerHasDisliked: !!viewerHasDisliked
         };
 
         res.json(merged);

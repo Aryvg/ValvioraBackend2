@@ -273,8 +273,8 @@ const verifyResetCode = async (req, res) => {
             return res.json({ message: 'Code verified.' });
         }
 
-        if (String(newPassword).length > 12) {
-            return res.status(400).json({ message: 'Password must be 12 characters or less.' });
+        if (String(newPassword).length > 64) {
+            return res.status(400).json({ message: 'Password must be 64 characters or less.' });
         }
         if (!isStrongPassword(newPassword)) return res.status(400).json({ message: 'Password is not strong enough.' });
 

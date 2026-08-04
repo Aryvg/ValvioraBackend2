@@ -35,6 +35,11 @@ const handleNewUser = async (req, res) => {
         return res.status(400).json({ message: 'Age must be between 8 and 120.' });
     }
 
+    // Password must be 64 characters or less
+    if (pwd.length > 64) {
+        return res.status(400).json({ message: 'Password must be 64 characters or less.' });
+    }
+
     // Password must be at least 8 characters and contain at least one letter and one number
     const pwdValid = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
     if (!pwdValid.test(pwd)) {

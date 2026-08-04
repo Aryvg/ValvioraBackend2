@@ -10,8 +10,8 @@ const handleLogin = async (req, res) => {
         if (!username || !password) return res.status(400).json({ 'message': 'Username and password are required.' });
 
         // Validate username length
-        if (username.length > 50) {
-            return res.status(400).json({ message: 'Username must be 50 characters or less.' });
+        if (username.length > 254) {
+            return res.status(400).json({ message: 'Username must be 254 characters or less.' });
         }
 
         // Validate username is a gmail address

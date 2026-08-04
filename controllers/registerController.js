@@ -22,8 +22,8 @@ const handleNewUser = async (req, res) => {
     }
 
     // Username length validation
-    if (user.length > 50) {
-        return res.status(400).json({ message: 'Username must be 50 characters or less.' });
+    if (user.length > 254) {
+        return res.status(400).json({ message: 'Username must be 254 characters or less.' });
     }
 
     // Age must be a number between 8 and 120

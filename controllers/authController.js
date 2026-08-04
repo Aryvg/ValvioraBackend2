@@ -21,8 +21,8 @@ const handleLogin = async (req, res) => {
         }
 
         // Validate password max length
-        if (password.length > 12) {
-            return res.status(400).json({ message: 'Password must be 12 characters or less.' });
+        if (password.length > 64) {
+            return res.status(400).json({ message: 'Password must be 64 characters or less.' });
         }
 
         const foundUser = await Registered.findOne({ username: username }).exec();
